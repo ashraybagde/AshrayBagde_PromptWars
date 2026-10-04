@@ -7,8 +7,8 @@ from dataclasses import dataclass
 class Settings:
     """Application settings."""
 
-    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
-    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    gemini_api_key: str = os.getenv("GEMINI_API_KEY", " ")
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
     gemini_fallback_model: str = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.1-flash-lite")
     timeout_s: float = 45.0
     retry_delay_s: float = 2.0
