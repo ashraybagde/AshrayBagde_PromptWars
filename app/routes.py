@@ -1,8 +1,10 @@
 """API routes."""
 import time
 from collections import defaultdict, deque
+from typing import Any, TypeVar
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 
 from app.cache import LRUCache
 from app.config import settings
@@ -10,6 +12,7 @@ from app.gemini_client import AnalysisError, generate
 from app.prompts import REFLECT_TASK, SYSTEM_PROMPT, wrap_user_data
 from app.schemas import AnalyzeRequest, AnalyzeResponse, ReflectRequest, ReflectResponse
 
+T = TypeVar("T", bound=BaseModel)
 router = APIRouter()
 cache = LRUCache()
 _hits: dict[str, deque[float]] = defaultdict(deque)
@@ -31,7 +34,8 @@ async def health() -> dict[str, str]:
     return {"status": "healthy"}
 
 
-async def _run(schema, user: str, payload: dict):  # noqa: ANN001
+async def _run(schema: type[T], user: str, payload: dict[str, Any]) -> T:
+    """Serve from cache or make one Gemini call."""
     key = cache.key({"s": schema.__name__, **payload})
     if (hit := cache.get(key)) is not None:
         return hit

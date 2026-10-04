@@ -2,11 +2,12 @@
 import json
 import logging
 import sys
+from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
@@ -22,7 +23,9 @@ app.add_middleware(CORSMiddleware, allow_origins=[], allow_methods=["GET", "POST
 
 
 @app.middleware("http")
-async def guard(request: Request, call_next):  # noqa: ANN001, ANN201
+async def guard(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     """Reject oversized payloads and add security headers."""
     if int(request.headers.get("content-length") or 0) > settings.max_payload_bytes:
         resp = JSONResponse({"detail": "Payload too large"}, status_code=413)
@@ -38,7 +41,8 @@ async def guard(request: Request, call_next):  # noqa: ANN001, ANN201
 @app.exception_handler(Exception)
 async def unhandled(_: Request, exc: Exception) -> JSONResponse:
     """Never expose stack traces."""
-    logging.error(json.dumps({"severity": "ERROR", "event": "unhandled", "err": type(exc).__name__}))
+    entry = {"severity": "ERROR", "event": "unhandled", "err": type(exc).__name__}
+    logging.error(json.dumps(entry))
     return JSONResponse({"detail": "Internal error"}, status_code=500)
 
 

@@ -9,34 +9,47 @@ DIMENSIONS = [
 ]
 
 
-def _text(max_len: int, min_len: int = 0) -> type:
-    return Annotated[str, StringConstraints(strip_whitespace=True, min_length=min_len, max_length=max_len)]
+def _trimmed(max_len: int, min_len: int = 0) -> StringConstraints:
+    return StringConstraints(strip_whitespace=True, min_length=min_len, max_length=max_len)
+
+
+Decision = Annotated[str, _trimmed(500, 1)]
+Options = Annotated[str, _trimmed(1000)]
+Reasons = Annotated[str, _trimmed(1500)]
+Reversibility = Annotated[str, _trimmed(300)]
+Answer = Annotated[str, _trimmed(1000, 1)]
 
 
 class AnalyzeRequest(BaseModel):
     """Guided decision form."""
 
     model_config = ConfigDict(extra="forbid")
-    decision: _text(500, 1)
-    options_being_considered: _text(1000) = ""
-    main_reasons: _text(1500) = ""
-    context_constraints: _text(1500) = ""
-    reversibility: _text(300) = ""
+    decision: Decision
+    options_being_considered: Options = ""
+    main_reasons: Reasons = ""
+    context_constraints: Reasons = ""
+    reversibility: Reversibility = ""
 
 
 class Assumption(BaseModel):
+    """A hidden assumption behind the stated reasoning."""
+
     assumption: str
     why_it_matters: str
     how_to_test: str
 
 
 class Factor(BaseModel):
+    """An overlooked factor tied to one dimension."""
+
     factor: str
     dimension: str
     why_it_matters: str
 
 
 class Coverage(BaseModel):
+    """Coverage score and note for one dimension."""
+
     dimension: str
     score: int = Field(ge=0, le=10)
     note: str = ""
@@ -60,7 +73,7 @@ class ReflectRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     input: AnalyzeRequest
     analysis: AnalyzeResponse
-    answers: list[_text(1000, 1)] = Field(max_length=3)
+    answers: list[Answer] = Field(max_length=3)
     assumption_statuses: list[Literal["Verified", "Unsure", "Just a guess"]] = Field(max_length=20)
 
 
